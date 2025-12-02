@@ -1,35 +1,16 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException
-from enum import Enum
+from app.routes import DocTags
+from fastapi import UploadFile, File, HTTPException, APIRouter
 import uuid
 from app.services.file_service import minio_client, MINIO_BUCKET
 from minio.error import S3Error
 import io
 
-api = APIRouter(
-    prefix="/api/v1",
+files_api = APIRouter(
+    prefix="/api/v1/files",
 )
 
-# Теги для документации
-class DocTags(str, Enum):
-    General = "General"
-    Files = "Files"
-    Agents = "Agents"
-    Tasks = "Tasks"
-
-# - Общие маршруты -
-@api.get("/health", tags=[DocTags.General])
-async def health():
-    return {
-        "status": "alive"
-    }
-@api.get("/ready", tags=[DocTags.General])
-async def ready():
-    return {
-        "status": "ready"
-    }
-
 # - Файловые маршруты -
-@api.post('/files/upload', tags=[DocTags.Files])
+@files_api.post('/upload', tags=[DocTags.Files])
 async def upload_file(file: UploadFile = File(...)):
     file_id = str(uuid.uuid4())
     object_name = f"file_{file_id}"
@@ -63,4 +44,4 @@ async def upload_file(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=f"MinIO upload failed: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
-        
+       
