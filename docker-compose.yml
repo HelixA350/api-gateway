@@ -11,6 +11,8 @@ services:
       MINIO_SECRET_KEY: miniopassword
       MINIO_SECURE: False
       MINIO_BUCKET: test-bucket
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
 
 networks:
   ai-shared-net:

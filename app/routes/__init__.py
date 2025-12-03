@@ -7,4 +7,5 @@ class DocTags(str, Enum):
     Files = "Files"
     Agents = "Agents"
     Tasks = "Tasks"
+    Admin = "Admin"
 
