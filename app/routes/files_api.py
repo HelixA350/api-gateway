@@ -2,6 +2,7 @@ from app.routes import DocTags
 from fastapi import UploadFile, File, HTTPException, APIRouter, Depends
 import uuid
 from app.services.file_service import minio_client, MINIO_BUCKET
+from app.services.redis_service import RedisService
 from minio.error import S3Error
 from app.models import * 
 from datetime import timedelta
@@ -42,7 +43,9 @@ async def get_presigned_url(data: PrecievedURLRequest):
 @files_api.post('/upload', tags=[DocTags.Files], response_model=FileUploadResponse)
 async def upload_file(file: UploadFile = File(...)):
     """Загрузка маленьких файлов (<5мб)"""
-    # Проверка размера файла
+    # Проверка размера файла на время разработки
+    # Этот метод все равно читает файл и работает долго
+    # в проде заменим на проверку на уровне nginx для конкретного эндпоинта
     size = file.size
     if size > 5 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="File size exceeds the limit of 5MB")
@@ -68,11 +71,29 @@ async def upload_file(file: UploadFile = File(...)):
         tags=[DocTags.Files],
         response_model=TaskAcceptedResponse,
     )
-async def process_file(data: FilePreprocessingRequest, arc_pull=Depends(get_arq_pool)):
+async def process_file(data: FilePreprocessingRequest, arq_pool=Depends(get_arq_pool)):
     """Предобработка файла для дальнейшего использования"""
-    id = str(uuid.uuid4())
-    #TODO: здесь мы будем класть файл в очередь на обработку
-    await arc_pull.enqueue_job('process_file', id)
+    #TODO: добавить валидацию типа файла
+    match data.processing_type:
+        case 'AudioProc':
+            id = await RedisService.post_task(
+                arq_pool,
+                'process_audio',
+                data.webhook_url,
+                **{
+                    'file_token': data.file_token
+                }
+            )
+        case 'Doc2Vec':
+            id = await RedisService.post_task(
+                arq_pool,
+                'doc2vec',
+                data.webhook_url,
+                **{
+                    'file_token': data.file_token
+                }
+            )
+    
     return TaskAcceptedResponse(
         task_id = id
     )

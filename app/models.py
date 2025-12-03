@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, HttpUrl
 from typing import Literal, Optional, Dict
 
 # - Работы с файлами -
@@ -16,7 +16,7 @@ class FileUploadResponse(BaseModel):
 class FilePreprocessingRequest(BaseModel):
     file_token: str
     processing_type: Literal['Doc2Vec', 'AudioProc']
-    webhook_url: str
+    webhook_url: HttpUrl
 
 class TaskAcceptedResponse(BaseModel):
     message: str = Field(default='Задача принята в работу')
@@ -27,6 +27,7 @@ class MeetingAnalysisRequest(BaseModel):
     processed_audio_token: str
     chat_link: Optional[str] = None
     with_tasks: bool = False
+    webhook_url: HttpUrl
 
 # - Чат с документами -
 class Message(BaseModel):
@@ -35,8 +36,10 @@ class Message(BaseModel):
 class ChatWithDocRequest(BaseModel):
     collection_ids: list[str]
     messages: list[Message]
+    webhook_url: HttpUrl
 
 # - Глубокое извлечение информации из документов -
 class DocumentExtractionRequest(BaseModel):
     collection_ids: list[str]
     analysis_schema_id: str
+    webhook_url: HttpUrl
