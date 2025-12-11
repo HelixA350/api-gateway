@@ -43,3 +43,13 @@ class DocumentExtractionRequest(BaseModel):
     collection_ids: list[str]
     analysis_schema_id: str
     webhook_url: HttpUrl
+
+
+
+# - Агент - 
+class AgentRequest(BaseModel):
+    user_message: str
+    new_file_tokens: Optional[list[str]] = None
+    chat_id: Optional[str] = None
+
+    webhook_url: HttpUrl

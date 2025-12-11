@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from app.models import *
 from app.routes import DocTags
 from app.services.redis_service import RedisService
@@ -7,61 +7,47 @@ from app.dependencies import get_arq_pool
 agents_api = APIRouter(
     prefix="/api/v1/agents",
 )
-
-# - Агент обработки встреч -
-@agents_api.post("/meeting-analysis", response_model=TaskAcceptedResponse, tags=[DocTags.Agents])
-async def analyze_meetings(data: MeetingAnalysisRequest, arq_pool=Depends(get_arq_pool)):
-    """Анализ встреч. Извлечение ключевых моментов и постановка задач"""
-    #TODO: здесь мы будем класть файл в очередь на обработку
+@agents_api.post("/main", response_model=TaskAcceptedResponse, tags=[DocTags.Agents])
+async def main_agent(data: AgentRequest, arq_pool=Depends(get_arq_pool)):
+    """Запуск основного агента"""
     id = await RedisService.post_task(
         arq_pool=arq_pool,
-        worker_function_name='analyze_meeting',
+        worker_function_name='run_agent',
         webhook_url=data.webhook_url,
         **{
-            'processed_audio_token': data.processed_audio_token,
-            'chat_link': data.chat_link,
-            'with_tasks': data.with_tasks,
+            'user_message': data.user_message,
+            'chat_id': data.chat_id,
+            'new_file_tokens': data.new_file_tokens,
         }
     )
     return TaskAcceptedResponse(
         task_id=id,
     )
 
-# - Агент чата с документами -
-@agents_api.post("/document-chat", response_model=TaskAcceptedResponse, tags=[DocTags.Agents])
-async def analyze_meetings(data: ChatWithDocRequest, arq_pool=Depends(get_arq_pool)):
-    """Чат с документами. 
-    Агент принимает уже загруженные и предобработанные документы
+@agents_api.get('/mcp', tags=[DocTags.Agents], response_model=TaskAcceptedResponse)
+async def get_mcp(arq_pool=Depends(get_arq_pool), webhook_url = Query(...)):
     """
-    #TODO: здесь мы будем класть файл в очередь на обработку
+    Получить список доступных MCP серверов и их описание
+    """
     id = await RedisService.post_task(
         arq_pool=arq_pool,
-        worker_function_name='chat_with_doc',
-        webhook_url=data.webhook_url,
-        **{
-            'collection_ids': data.collection_ids,
-            'messages': data.messages,
-        }
+        worker_function_name='get_mcp',
+        webhook_url=webhook_url,
     )
-    return TaskAcceptedResponse(
-        task_id=id,
-    )
-# - Агент чата с документами -
-@agents_api.post("/document-extraction", response_model=TaskAcceptedResponse, tags=[DocTags.Agents])
-async def analyze_meetings(data: DocumentExtractionRequest, arq_pool=Depends(get_arq_pool)):
-    """Глубокое извлечение информации из документов
-    Агент принимает уже загруженные и предобработанные документы.
+    return TaskAcceptedResponse(task_id = id)
+
+@agents_api.get('/mcp/{mcp_id}', tags=[DocTags.Agents], response_model=TaskAcceptedResponse)
+async def get_mcp_details(mcp_id: str, arq_pool=Depends(get_arq_pool), webhook_url = Query(...)):
     """
-    #TODO: здесь мы будем класть файл в очередь на обработку
+    Получить описание MCP сервера, его инстрмуентови, ресурсов и промптов
+    
+    :param mcp_id: id mcp сервера
+    :type mcp_id: str
+    """
     id = await RedisService.post_task(
         arq_pool=arq_pool,
-        worker_function_name='deep_extract_data',
-        webhook_url=data.webhook_url,
-        **{
-            'collection_ids': data.collection_ids,
-            'analysis_schema_id': data.analysis_schema_id,
-        }
+        worker_function_name='mcp_details',
+        webhook_url=webhook_url,
+        id = mcp_id,
     )
-    return TaskAcceptedResponse(
-        task_id=id,
-    )
+    return TaskAcceptedResponse(task_id = id)

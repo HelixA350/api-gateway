@@ -16,7 +16,8 @@ files_api = APIRouter(
 # - Получение подписанной ссылки для загрузки большого файла -
 @files_api.post('/presigned_url', tags=[DocTags.Files], response_model=PresignedURLResponse)
 async def get_presigned_url(data: PrecievedURLRequest):
-    """Загрузка больших файлов (>5мб) осуществляется через presigned_url. 
+    """МЕТОД ЕЩЕ НЕ РЕАЛИЗОВАН!
+    Загрузка больших файлов (>5мб) осуществляется через presigned_url. 
     напрямую в Объектное Хранилище
     """
     file_token = str(uuid.uuid4())
@@ -65,35 +66,3 @@ async def upload_file(file: UploadFile = File(...)):
         file_token=file_token,
     )
     
-# - Запрос на предобработку файла - 
-@files_api.post(
-        '/process',
-        tags=[DocTags.Files],
-        response_model=TaskAcceptedResponse,
-    )
-async def process_file(data: FilePreprocessingRequest, arq_pool=Depends(get_arq_pool)):
-    """Предобработка файла для дальнейшего использования"""
-    #TODO: добавить валидацию типа файла
-    match data.processing_type:
-        case 'AudioProc':
-            id = await RedisService.post_task(
-                arq_pool,
-                'process_audio',
-                data.webhook_url,
-                **{
-                    'file_token': data.file_token
-                }
-            )
-        case 'Doc2Vec':
-            id = await RedisService.post_task(
-                arq_pool,
-                'doc2vec',
-                data.webhook_url,
-                **{
-                    'file_token': data.file_token
-                }
-            )
-    
-    return TaskAcceptedResponse(
-        task_id = id
-    )
