@@ -44,10 +44,14 @@ class DocumentExtractionRequest(BaseModel):
     analysis_schema_id: str
     webhook_url: HttpUrl
 
-
+class PromptInput(BaseModel):
+    name: str
+    args: Dict[str, str]
 
 # - Агент - 
 class AgentRequest(BaseModel):
+    mcp_id: Optional[str] = None
+    mcp_prompt: PromptInput
     user_message: str
     new_file_tokens: Optional[list[str]] = None
     chat_id: Optional[str] = None

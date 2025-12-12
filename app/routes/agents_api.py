@@ -18,6 +18,10 @@ async def main_agent(data: AgentRequest, arq_pool=Depends(get_arq_pool)):
             'user_message': data.user_message,
             'chat_id': data.chat_id,
             'new_file_tokens': data.new_file_tokens,
+            'mcp_id': data.mcp_id,
+            'mcp_prompt_name': data.mcp_prompt.name,
+            'mcp_prompt_args': data.mcp_prompt.args,
+
         }
     )
     return TaskAcceptedResponse(
